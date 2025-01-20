@@ -54,9 +54,8 @@ void Sunlight_CO₂::product_type_get()
 
     RegisterRead reads[] = {
         {static_cast<uint8_t>(Registers::FirmwareType), &product.FirmwareType, sizeof(product.FirmwareType)},
-        {static_cast<uint8_t>(Registers::FirmwareRev), &product.MainRevision, sizeof(product.MainRevision)},
+        {static_cast<uint8_t>(Registers::FirmwareRev), &product.FirmwareRev, sizeof(product.FirmwareRev)},
         {static_cast<uint8_t>(Registers::SensorId), &product.SensorId, sizeof(product.SensorId)},
-        {static_cast<uint8_t>(Registers::ProductCode), product.ProductCode.data(), product.ProductCode.size()},
     };
 
     for (const auto &read : reads)
@@ -64,6 +63,16 @@ void Sunlight_CO₂::product_type_get()
 
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, read.data, read.size);
+    }
+
+    uint8_t main_revision = static_cast<uint8_t>((product.FirmwareRev >> 8) & 0xFF);
+    uint8_t sub_revision = static_cast<uint8_t>(product.FirmwareRev & 0xFF);
+    
+    if (product.FirmwareType >= 4 && product.FirmwareRev >= 8) 
+    {
+        uint8_t product_code_reg = static_cast<uint8_t>(Registers::ProductCode);
+        I2CWrite(SENSOR_ADDRESS, &product_code_reg, sizeof(product_code_reg), DELAY_ZIRO);
+        I2CRead(SENSOR_ADDRESS, product.ProductCode.data(), product.ProductCode.size());
     }
 }
 /**
@@ -101,7 +110,7 @@ void Sunlight_CO₂::get_config()
 
     for (const auto &read : reads)
     {
-        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
+        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_SRAM);
         I2CRead(SENSOR_ADDRESS, read.data, read.size);
     }
 }
@@ -109,7 +118,8 @@ void Sunlight_CO₂::get_config()
 template <typename T>
 bool Sunlight_CO₂::is_valid_EE_register(Registers reg, T value)
 {
-    switch (reg) {
+    switch (reg)
+    {
     case Registers::MeasurementMode_EE:
         return std::is_same_v<T, uint8_t>;
     case Registers::I2C_Address_EE:
@@ -139,7 +149,7 @@ bool Sunlight_CO₂::is_valid_EE_register(Registers reg, T value)
 template <typename T>
 bool Sunlight_CO₂::set_config(Registers reg, T value)
 {
-    if(!is_valid_EE_register(reg, value))
+    if (!is_valid_EE_register(reg, value))
     {
         return false;
     }
@@ -212,7 +222,7 @@ void Sunlight_CO₂::sensor_state_data_set()
     for (const auto &write : writes)
     {
         I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
-        I2CWrite(SENSOR_ADDRESS, write.data, write.size,DELAY_SRAM);
+        I2CWrite(SENSOR_ADDRESS, write.data, write.size, DELAY_SRAM);
     }
 }
 
@@ -265,9 +275,9 @@ uint16_t Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
     if (pressure != nullptr)
     {
         uint8_t pressureValueReg = static_cast<uint8_t>(Registers::PressureValue);
-  
+
         I2CWrite(SENSOR_ADDRESS, &pressureValueReg, sizeof(pressureValueReg), DELAY_ZIRO);
-        I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(pressure), 2);
+        I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(pressure), 2, DELAY_SRAM);
     }
 
     sensor_state_data_set();

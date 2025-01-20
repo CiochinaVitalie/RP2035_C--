@@ -66,7 +66,7 @@ enum class Registers : uint8_t
 struct ProductType
 {
     uint8_t FirmwareType;
-    uint16_t MainRevision;
+    uint16_t FirmwareRev;
     uint32_t SensorId;
     std::array<char, 15> ProductCode;
 };
@@ -125,10 +125,6 @@ private:
     void sensor_state_data_get();
     void sensor_state_data_set();
     void start_mesure();
-    void get_config();
-    void clear_error_status();
-    void read_error_status();
-    void product_type_get();
     void sensor_get_data(uint16_t *measData);
 
 public:
@@ -138,12 +134,25 @@ public:
         i2c->init();
         gpio->output_conf(en_pin);
         gpio->input_conf(nrdy_pin);
+
+        gpio->set_high(en_pin);
+        delay->wait_ms(35);
+
+        clear_error_status();
+        product_type_get();
+        sensor_state_data_get();
+        read_error_status();
+
+        gpio->set_low(en_pin);
     }
     uint16_t error;
     template <typename T>
     bool set_config(Registers reg, T value);
     void reset_sensor();
     uint16_t CO2_measurement_get(uint16_t *pressure);
-
+    void get_config();
+    void clear_error_status();
+    void read_error_status();
+    void product_type_get();
     ~Sunlight_CO₂() {};
 };
