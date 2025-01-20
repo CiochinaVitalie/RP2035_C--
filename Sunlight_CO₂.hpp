@@ -2,16 +2,18 @@
 #include <array>
 #include <cstdint>
 #include <cstddef>
+#include <iostream>
+#include <string>
+#include <vector>
 #include "II2C.hpp"
 #include "IDELAY.hpp"
 #include "IGPIO.hpp"
 
-
-#define DELAY_WAKEUP                    35UL
-#define DELAY_TIMEOUT                   15UL
-#define DELAY_SRAM                      1UL
-#define DELAY_EEPROM                    25UL
-#define DELAY_ZIRO                      0UL
+#define DELAY_WAKEUP 35UL
+#define DELAY_TIMEOUT 15UL
+#define DELAY_SRAM 1UL
+#define DELAY_EEPROM 25UL
+#define DELAY_ZIRO 0UL
 
 enum class Registers : uint8_t
 {
@@ -61,6 +63,24 @@ enum class Registers : uint8_t
     BarAirPress = 0xDC,
     ABCBarPress = 0xDE,
 
+};
+
+enum class Error : uint16_t
+{
+    None             = 0,
+    Low_internal_err = 1 << 15,
+    Meas_timeout_err = 1 << 14,
+    Abnor_signal_err = 1 << 13,
+    Scale_factor_err = 1 << 8,
+
+    Fatal_err = 1 << 7,
+    I2C_err = 1 << 6,
+    Algorithm_err = 1 << 5,
+    Calibration_err = 1 << 4,
+    Self_diag_err = 1 << 3,
+    Out_of_range = 1 << 2,
+    Memory_err = 1 << 1,
+    No_meas_complete = 1 << 0,
 };
 
 struct ProductType
@@ -117,9 +137,8 @@ private:
     StateData state_data;
     ProductType product;
 
-    
-    uint8_t I2CWrite(int addr, const void* data, size_t size, unsigned long int timeout = DELAY_SRAM);
-    uint8_t I2CRead(int addr, void* result, size_t size, unsigned long int timeout = DELAY_TIMEOUT);
+    uint8_t I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout = DELAY_SRAM);
+    uint8_t I2CRead(int addr, void *result, size_t size, unsigned long int timeout = DELAY_TIMEOUT);
     template <typename T>
     bool is_valid_EE_register(Registers reg, T value);
     void sensor_state_data_get();
@@ -145,7 +164,8 @@ public:
 
         gpio->set_low(en_pin);
     }
-    uint16_t error;
+    uint16_t error_flags;
+    std::string error_to_string(Error error);
     template <typename T>
     bool set_config(Registers reg, T value);
     void reset_sensor();
@@ -154,5 +174,6 @@ public:
     void clear_error_status();
     void read_error_status();
     void product_type_get();
+    bool is_error_active(Error error) const;
     ~Sunlight_CO₂() {};
 };

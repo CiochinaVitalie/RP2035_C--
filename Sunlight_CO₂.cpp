@@ -22,6 +22,45 @@ uint8_t Sunlight_CO₂::I2CRead(int addr, void *data, size_t size, unsigned long
     return err;
 }
 
+bool Sunlight_CO₂::is_error_active(Error error) const
+{
+    return (error_flags & static_cast<uint16_t>(error));
+}
+
+std::string Sunlight_CO₂::error_to_string(Error error)
+{
+    switch (error)
+    {
+    case Error::None:
+        return "No error \r\n";
+    case Error::Low_internal_err:
+        return "Low internal error \r\n";
+    case Error::Meas_timeout_err:
+        return "Measurement timeout error \r\n";
+    case Error::Abnor_signal_err:
+        return "Abnormal signal error \r\n";
+    case Error::Scale_factor_err:
+        return "Scale factor error \r\n";
+    case Error::Fatal_err:
+        return "Fatal error \r\n";
+    case Error::I2C_err:
+        return "I2C communication error \r\n";
+    case Error::Algorithm_err:
+        return "Algorithm error \r\n";
+    case Error::Calibration_err:
+        return "Calibration error \r\n";
+    case Error::Self_diag_err:
+        return "Self-diagnostic error \r\n";
+    case Error::Out_of_range:
+        return "Out of range error \r\n";
+    case Error::Memory_err:
+        return "Memory error \r\n";
+    case Error::No_meas_complete:
+        return "No measurement complete \r\n";
+    default:
+        return "Unknown error \r\n";
+    }
+}
 /**
  * @brief Retrieves the product type information from the sensor.
  *
@@ -67,8 +106,8 @@ void Sunlight_CO₂::product_type_get()
 
     uint8_t main_revision = static_cast<uint8_t>((product.FirmwareRev >> 8) & 0xFF);
     uint8_t sub_revision = static_cast<uint8_t>(product.FirmwareRev & 0xFF);
-    
-    if (product.FirmwareType >= 4 && product.FirmwareRev >= 8) 
+
+    if (product.FirmwareType >= 4 && product.FirmwareRev >= 8)
     {
         uint8_t product_code_reg = static_cast<uint8_t>(Registers::ProductCode);
         I2CWrite(SENSOR_ADDRESS, &product_code_reg, sizeof(product_code_reg), DELAY_ZIRO);
@@ -238,7 +277,7 @@ void Sunlight_CO₂::read_error_status()
     uint8_t errorStatusReg = static_cast<uint8_t>(Registers::ErrorStatus);
 
     I2CWrite(SENSOR_ADDRESS, &errorStatusReg, sizeof(errorStatusReg), DELAY_ZIRO);
-    I2CRead(SENSOR_ADDRESS, &error, sizeof(error));
+    I2CRead(SENSOR_ADDRESS, &error_flags, sizeof(error_flags));
 }
 
 void Sunlight_CO₂::sensor_get_data(uint16_t *measData)
