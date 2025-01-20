@@ -64,12 +64,13 @@ class RP2040GPIO : public IGPIO
 public:
     void set_high(int pin) override
     {
-        gpio_put(pin, true);
+        gpio_put(pin, true); 
     }
 
     void set_low(int pin) override
     {
-        gpio_put(pin, false);
+        gpio_put(pin, false); 
+ 
     }
 
     void output_conf(int pin) override

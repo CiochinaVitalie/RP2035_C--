@@ -22,9 +22,9 @@ int main()
     delay.wait_ms(2500);
 
     Sunlight_CO₂ *sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, EN_PIN, NRDY_PIN);
+    sensor->CO2_measurement_get(nullptr);
 
     while (true) {
-        printf("error %x\n",sensor->error);
         sleep_ms(1000);
     }
 }

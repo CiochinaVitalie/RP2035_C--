@@ -22,9 +22,20 @@ uint8_t Sunlight_CO₂::I2CRead(int addr, void *data, size_t size, unsigned long
     return err;
 }
 
+void Sunlight_CO₂::sleep()
+{
+    gpio->set_low(en_pin);
+}
+
+void Sunlight_CO₂::wake_up()
+{
+    gpio->set_high(en_pin);
+    delay->wait_ms(35);
+}
+
 bool Sunlight_CO₂::is_error_active(Error error) const
 {
-    return (error_flags & static_cast<uint16_t>(error));
+    return (meas_data.errorstatus & static_cast<uint16_t>(error));
 }
 
 std::string Sunlight_CO₂::error_to_string(Error error)
@@ -84,6 +95,7 @@ std::string Sunlight_CO₂::error_to_string(Error error)
  */
 void Sunlight_CO₂::product_type_get()
 {
+
     struct RegisterRead
     {
         uint8_t reg;
@@ -97,7 +109,7 @@ void Sunlight_CO₂::product_type_get()
         {static_cast<uint8_t>(Registers::SensorId), &product.SensorId, sizeof(product.SensorId)},
     };
 
-    for (const auto &read : reads)
+    for (const auto read : reads)
     {
 
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
@@ -127,6 +139,7 @@ void Sunlight_CO₂::product_type_get()
  */
 void Sunlight_CO₂::get_config()
 {
+
     struct RegisterRead
     {
         uint8_t reg;
@@ -147,9 +160,9 @@ void Sunlight_CO₂::get_config()
         {static_cast<uint8_t>(Registers::Denominator_EE), &config.denominator, sizeof(config.denominator)},
         {static_cast<uint8_t>(Registers::Scale_ABC_Target), &config.scaled_abc_target, sizeof(config.scaled_abc_target)}};
 
-    for (const auto &read : reads)
+    for (const auto read : reads)
     {
-        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_SRAM);
+        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, read.data, read.size);
     }
 }
@@ -185,23 +198,41 @@ bool Sunlight_CO₂::is_valid_EE_register(Registers reg, T value)
     }
 }
 
-template <typename T>
-bool Sunlight_CO₂::set_config(Registers reg, T value)
+bool Sunlight_CO₂::set_config(Config set_config)
 {
-    if (!is_valid_EE_register(reg, value))
-    {
-        return false;
-    }
-    T current_value;
 
-    I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&reg), 1, DELAY_ZIRO);
-    I2CRead(SENSOR_ADDRESS, &current_value, sizeof(current_value));
-
-    if (current_value != value)
+    struct RegisterRead
     {
-        I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&reg), 1, DELAY_ZIRO);
-        I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&value), sizeof(value), DELAY_SRAM);
+        uint8_t reg;
+        void *data;
+        size_t size;
+    };
+
+    RegisterRead reads[] = {
+        {static_cast<uint8_t>(Registers::MeasurementMode_EE), &set_config.measurement_mode, sizeof(set_config.measurement_mode)},
+        {static_cast<uint8_t>(Registers::MeasurementPeriod_EE), &set_config.measurement_period, sizeof(set_config.measurement_period)},
+        {static_cast<uint8_t>(Registers::NumberOfSamples_EE), &set_config.number_of_samples, sizeof(set_config.number_of_samples)},
+        {static_cast<uint8_t>(Registers::ABC_Period_EE), &set_config.abc_period, sizeof(set_config.abc_period)},
+        {static_cast<uint8_t>(Registers::ABC_Target_EE), &set_config.abc_target, sizeof(set_config.abc_target)},
+        {static_cast<uint8_t>(Registers::StaticIIRFilter_EE), &set_config.iir_filter, sizeof(set_config.iir_filter)},
+        {static_cast<uint8_t>(Registers::MeterControl_EE), &set_config.meter_control, sizeof(set_config.meter_control)},
+        {static_cast<uint8_t>(Registers::I2C_Address_EE), &set_config.i2c_address, sizeof(set_config.i2c_address)},
+        {static_cast<uint8_t>(Registers::Nominator_EE), &set_config.nominator, sizeof(set_config.nominator)},
+        {static_cast<uint8_t>(Registers::Denominator_EE), &set_config.denominator, sizeof(set_config.denominator)},
+        {static_cast<uint8_t>(Registers::Scale_ABC_Target), &set_config.scaled_abc_target, sizeof(set_config.scaled_abc_target)}
+        };
+
+    for (const auto read : reads)
+    {
+        uint8_t current_value[read.size];
+        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
+        I2CRead(SENSOR_ADDRESS, current_value, read.size);
+        if (memcmp(current_value, read.data, read.size) != 0) {
+            I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
+            I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t*>(read.data), read.size, DELAY_EEPROM);
+        }
     }
+
     return true;
 }
 
@@ -219,6 +250,7 @@ void Sunlight_CO₂::sensor_state_data_get()
         {static_cast<uint8_t>(Registers::AbcPar0), &state_data.abc_par0, sizeof(state_data.abc_par0)},
         {static_cast<uint8_t>(Registers::AbcPar1), &state_data.abc_par1, sizeof(state_data.abc_par1)},
         {static_cast<uint8_t>(Registers::AbcPar2), &state_data.abc_par2, sizeof(state_data.abc_par2)},
+        {static_cast<uint8_t>(Registers::AbcPar3), &state_data.abc_par3, sizeof(state_data.abc_par3)},
         {static_cast<uint8_t>(Registers::FiltPar0), &state_data.filt_par0, sizeof(state_data.filt_par0)},
         {static_cast<uint8_t>(Registers::FiltPar1), &state_data.filt_par1, sizeof(state_data.filt_par1)},
         {static_cast<uint8_t>(Registers::FiltPar2), &state_data.filt_par2, sizeof(state_data.filt_par2)},
@@ -228,10 +260,10 @@ void Sunlight_CO₂::sensor_state_data_get()
         {static_cast<uint8_t>(Registers::FiltPar6), &state_data.filt_par6, sizeof(state_data.filt_par6)}
 
     };
-    for (const auto &read : reads)
+    for (const auto read : reads)
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
-        I2CRead(SENSOR_ADDRESS, read.data, read.size);
+        I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(read.data), read.size);
     }
 }
 
@@ -249,6 +281,7 @@ void Sunlight_CO₂::sensor_state_data_set()
         {static_cast<uint8_t>(Registers::AbcPar0), &state_data.abc_par0, sizeof(state_data.abc_par0)},
         {static_cast<uint8_t>(Registers::AbcPar1), &state_data.abc_par1, sizeof(state_data.abc_par1)},
         {static_cast<uint8_t>(Registers::AbcPar2), &state_data.abc_par2, sizeof(state_data.abc_par2)},
+        {static_cast<uint8_t>(Registers::AbcPar3), &state_data.abc_par3, sizeof(state_data.abc_par3)},
         {static_cast<uint8_t>(Registers::FiltPar0), &state_data.filt_par0, sizeof(state_data.filt_par0)},
         {static_cast<uint8_t>(Registers::FiltPar1), &state_data.filt_par1, sizeof(state_data.filt_par1)},
         {static_cast<uint8_t>(Registers::FiltPar2), &state_data.filt_par2, sizeof(state_data.filt_par2)},
@@ -258,10 +291,10 @@ void Sunlight_CO₂::sensor_state_data_set()
         {static_cast<uint8_t>(Registers::FiltPar6), &state_data.filt_par6, sizeof(state_data.filt_par6)}
 
     };
-    for (const auto &write : writes)
+    for (const auto write : writes)
     {
         I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
-        I2CWrite(SENSOR_ADDRESS, write.data, write.size, DELAY_SRAM);
+        I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(write.data), write.size, DELAY_SRAM);
     }
 }
 
@@ -277,16 +310,7 @@ void Sunlight_CO₂::read_error_status()
     uint8_t errorStatusReg = static_cast<uint8_t>(Registers::ErrorStatus);
 
     I2CWrite(SENSOR_ADDRESS, &errorStatusReg, sizeof(errorStatusReg), DELAY_ZIRO);
-    I2CRead(SENSOR_ADDRESS, &error_flags, sizeof(error_flags));
-}
-
-void Sunlight_CO₂::sensor_get_data(uint16_t *measData)
-{
-
-    uint8_t meas_reg = static_cast<uint8_t>(Registers::MeasuredFilteredPc);
-
-    I2CWrite(SENSOR_ADDRESS, &meas_reg, sizeof(meas_reg), DELAY_ZIRO);
-    I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(measData), 2);
+    I2CRead(SENSOR_ADDRESS, &meas_data.errorstatus, sizeof(meas_data.errorstatus));
 }
 
 void Sunlight_CO₂::start_mesure()
@@ -302,12 +326,29 @@ void Sunlight_CO₂::reset_sensor()
     I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_WAKEUP);
 }
 
-uint16_t Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
+void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
 {
-    uint16_t CO2_Data;
+    struct RegisterRead
+    {
+        uint8_t reg;
+        void *data;
+        size_t size;
+    };
 
-    gpio->set_high(en_pin);
-    delay->wait_ms(35);
+    RegisterRead reads[] = {
+
+        {static_cast<uint8_t>(Registers::MeasuredFilteredPc), &meas_data.co2, sizeof(meas_data.co2)},
+        {static_cast<uint8_t>(Registers::Temperature), &meas_data.temperature, sizeof(meas_data.temperature)},
+        {static_cast<uint8_t>(Registers::MeasurementCount), &meas_data.measurementCount, sizeof(meas_data.measurementCount)},
+        {static_cast<uint8_t>(Registers::MeasurCycleTime), &meas_data.cycleTime, sizeof(meas_data.cycleTime)},
+        {static_cast<uint8_t>(Registers::MeasUnfPressCompens), &meas_data.measUnfiCompens, sizeof(meas_data.measUnfiCompens)},
+        {static_cast<uint8_t>(Registers::MeasFiltered), &meas_data.measuredFiltered, sizeof(meas_data.measuredFiltered)},
+        {static_cast<uint8_t>(Registers::MeasuredUnfiltered), &meas_data.measuredUnfiltered, sizeof(meas_data.measuredUnfiltered)},
+        {static_cast<uint8_t>(Registers::ErrorStatus), &meas_data.errorstatus, sizeof(meas_data.errorstatus)},
+
+    };
+
+    sleep();
 
     start_mesure();
 
@@ -321,15 +362,18 @@ uint16_t Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
 
     sensor_state_data_set();
 
-    while (!gpio->read(nrdy_pin))
+    // while (!gpio->read(nrdy_pin))
+    // {
+    //     delay->wait_ms(1);
+    // }
+    delay->wait_ms(2400);
+
+    for (const auto read : reads)
     {
-        delay->wait_ms(1);
+        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
+        I2CRead(SENSOR_ADDRESS, read.data, read.size);
     }
 
-    read_error_status();
-    sensor_get_data(&CO2_Data);
-    sensor_state_data_get();
-    gpio->set_low(en_pin);
-
-    return CO2_Data;
+    // sensor_state_data_get();
+    sleep();
 }

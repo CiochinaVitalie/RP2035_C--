@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
 #include "II2C.hpp"
 #include "IDELAY.hpp"
 #include "IGPIO.hpp"
@@ -23,7 +24,7 @@ enum class Registers : uint8_t
     MeasurementCount = 0x0D,
     MeasurCycleTime = 0x0E,
     MeasUnfPressCompens = 0x10,
-    MeasFilPressCompens = 0x12,
+    MeasFiltered = 0x12,
     MeasuredUnfiltered = 0x14,
     FirmwareType = 0x2F,
     FirmwareRev = 0x38,
@@ -67,7 +68,7 @@ enum class Registers : uint8_t
 
 enum class Error : uint16_t
 {
-    None             = 0,
+    None = 0,
     Low_internal_err = 1 << 15,
     Meas_timeout_err = 1 << 14,
     Abnor_signal_err = 1 << 13,
@@ -82,7 +83,17 @@ enum class Error : uint16_t
     Memory_err = 1 << 1,
     No_meas_complete = 1 << 0,
 };
-
+struct MeasurementData
+{
+    uint16_t errorstatus;
+    uint16_t co2;
+    uint16_t temperature;
+    uint8_t measurementCount;
+    uint16_t cycleTime;
+    uint16_t measUnfiCompens;
+    uint16_t measuredFiltered;
+    uint16_t measuredUnfiltered;
+};
 struct ProductType
 {
     uint8_t FirmwareType;
@@ -133,9 +144,9 @@ private:
     static constexpr uint8_t SENSOR_ADDRESS = 0x68;
     uint8_t state_buffer[24];
 
-    Config config;
     StateData state_data;
     ProductType product;
+    MeasurementData meas_data;
 
     uint8_t I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout = DELAY_SRAM);
     uint8_t I2CRead(int addr, void *result, size_t size, unsigned long int timeout = DELAY_TIMEOUT);
@@ -144,7 +155,13 @@ private:
     void sensor_state_data_get();
     void sensor_state_data_set();
     void start_mesure();
-    void sensor_get_data(uint16_t *measData);
+    void sleep();
+    void wake_up();
+    void clear_error_status();
+    void read_error_status();
+    void product_type_get();
+    void get_config();
+    bool is_error_active(Error error) const;
 
 public:
     Sunlight_CO₂(II2C *i2c_context, IDelay *delay_context, IGPIO *gpio_context, int en_pin, int nrdy_pin)
@@ -154,26 +171,20 @@ public:
         gpio->output_conf(en_pin);
         gpio->input_conf(nrdy_pin);
 
-        gpio->set_high(en_pin);
-        delay->wait_ms(35);
-
+        wake_up();
         clear_error_status();
         product_type_get();
+        delay->wait_ms(1);
         sensor_state_data_get();
         read_error_status();
-
-        gpio->set_low(en_pin);
+        sleep();
     }
-    uint16_t error_flags;
+    Config config;
     std::string error_to_string(Error error);
-    template <typename T>
-    bool set_config(Registers reg, T value);
+  
+    bool set_config(Config config);
     void reset_sensor();
-    uint16_t CO2_measurement_get(uint16_t *pressure);
-    void get_config();
-    void clear_error_status();
-    void read_error_status();
-    void product_type_get();
-    bool is_error_active(Error error) const;
+    void CO2_measurement_get(uint16_t *pressure);
+
     ~Sunlight_CO₂() {};
 };
