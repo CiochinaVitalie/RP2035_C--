@@ -13,13 +13,7 @@ uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsign
 
 uint8_t Sunlight_CO₂::I2CRead(int addr, void *data, size_t size, unsigned long int timeout)
 {
-    int err = i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
-    // if (err < 0)
-    // {
-    //     err = i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
-    // }
-
-    return err;
+    return i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
 }
 
 void Sunlight_CO₂::sleep()
@@ -36,6 +30,22 @@ void Sunlight_CO₂::wake_up()
 bool Sunlight_CO₂::is_error_active(Error error) const
 {
     return (meas_data.errorstatus & static_cast<uint16_t>(error));
+}
+
+bool Sunlight_CO₂::is_little_endian() {
+    uint32_t test = 0x01020304;
+    uint8_t *ptr = reinterpret_cast<uint8_t*>(&test);
+
+    return *ptr == 0x04; 
+}
+
+void Sunlight_CO₂::swap_endianness(void *data, size_t size)
+{
+    if (size > 1 && little_endian)
+    {
+        auto *data_ptr = static_cast<uint8_t *>(data);
+        std::reverse(data_ptr, data_ptr + size);
+    }
 }
 
 std::string Sunlight_CO₂::error_to_string(Error error)
@@ -114,6 +124,7 @@ void Sunlight_CO₂::product_type_get()
 
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, read.data, read.size);
+        swap_endianness(read.data, read.size);
     }
 
     uint8_t main_revision = static_cast<uint8_t>((product.FirmwareRev >> 8) & 0xFF);
@@ -164,37 +175,7 @@ void Sunlight_CO₂::get_config()
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, read.data, read.size);
-    }
-}
-
-template <typename T>
-bool Sunlight_CO₂::is_valid_EE_register(Registers reg, T value)
-{
-    switch (reg)
-    {
-    case Registers::MeasurementMode_EE:
-        return std::is_same_v<T, uint8_t>;
-    case Registers::I2C_Address_EE:
-        return std::is_same_v<T, uint8_t>;
-    case Registers::Nominator_EE:
-        return std::is_same_v<T, uint16_t>;
-    case Registers::Denominator_EE:
-        return std::is_same_v<T, uint16_t>;
-    case Registers::ABC_Period_EE:
-        return std::is_same_v<T, uint16_t>;
-    case Registers::ABC_Target_EE:
-        return std::is_same_v<T, uint16_t>;
-    case Registers::StaticIIRFilter_EE:
-        return std::is_same_v<T, uint8_t>;
-    case Registers::MeterControl_EE:
-        return std::is_same_v<T, uint8_t>;
-    case Registers::MeasurementPeriod_EE:
-        return std::is_same_v<T, uint16_t>;
-    case Registers::NumberOfSamples_EE:
-        return std::is_same_v<T, uint16_t>;
-
-    default:
-        return false;
+        swap_endianness(read.data, read.size);
     }
 }
 
@@ -227,6 +208,14 @@ bool Sunlight_CO₂::set_config(Config set_config)
         uint8_t current_value[read.size];
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, current_value, read.size);
+
+        if (read.size > 1)
+        {
+            swap_endianness(current_value, read.size);
+            swap_endianness(read.data, read.size);
+  
+        }
+
         if (memcmp(current_value, read.data, read.size) != 0) {
             I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
             I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t*>(read.data), read.size, DELAY_EEPROM);
@@ -264,6 +253,8 @@ void Sunlight_CO₂::sensor_state_data_get()
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(read.data), read.size);
+        swap_endianness(read.data, read.size);
+
     }
 }
 
@@ -293,8 +284,10 @@ void Sunlight_CO₂::sensor_state_data_set()
     };
     for (const auto write : writes)
     {
+        swap_endianness(write.data, write.size);
         I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
         I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(write.data), write.size, DELAY_SRAM);
+        
     }
 }
 
@@ -372,6 +365,7 @@ void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(read.data), read.size);
+        swap_endianness(read.data, read.size);
     }
 
     // sensor_state_data_get();

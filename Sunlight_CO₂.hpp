@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 #include "II2C.hpp"
 #include "IDELAY.hpp"
 #include "IGPIO.hpp"
@@ -146,12 +147,14 @@ private:
 
     StateData state_data;
     ProductType product;
+    bool little_endian;
     
 
     uint8_t I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout = DELAY_SRAM);
     uint8_t I2CRead(int addr, void *result, size_t size, unsigned long int timeout = DELAY_TIMEOUT);
-    template <typename T>
-    bool is_valid_EE_register(Registers reg, T value);
+    void swap_endianness(void *data, size_t size);
+    bool is_little_endian();
+
     void sensor_state_data_get();
     void sensor_state_data_set();
     void start_mesure();
@@ -170,6 +173,7 @@ public:
         i2c->init();
         gpio->output_conf(en_pin);
         gpio->input_conf(nrdy_pin);
+        little_endian = is_little_endian();
 
         wake_up();
         clear_error_status();
