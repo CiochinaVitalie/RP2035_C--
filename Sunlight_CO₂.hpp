@@ -146,7 +146,7 @@ private:
 
     StateData state_data;
     ProductType product;
-    MeasurementData meas_data;
+    
 
     uint8_t I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout = DELAY_SRAM);
     uint8_t I2CRead(int addr, void *result, size_t size, unsigned long int timeout = DELAY_TIMEOUT);
@@ -174,12 +174,12 @@ public:
         wake_up();
         clear_error_status();
         product_type_get();
-        delay->wait_ms(1);
         sensor_state_data_get();
         read_error_status();
         sleep();
     }
     Config config;
+    MeasurementData meas_data;
     std::string error_to_string(Error error);
   
     bool set_config(Config config);

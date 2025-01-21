@@ -14,10 +14,10 @@ uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsign
 uint8_t Sunlight_CO₂::I2CRead(int addr, void *data, size_t size, unsigned long int timeout)
 {
     int err = i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
-    if (err < 0)
-    {
-        err = i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
-    }
+    // if (err < 0)
+    // {
+    //     err = i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
+    // }
 
     return err;
 }
@@ -371,7 +371,7 @@ void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
     for (const auto read : reads)
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
-        I2CRead(SENSOR_ADDRESS, read.data, read.size);
+        I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(read.data), read.size);
     }
 
     // sensor_state_data_get();
