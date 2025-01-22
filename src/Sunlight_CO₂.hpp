@@ -85,6 +85,37 @@ enum class Error : uint16_t
     No_meas_complete = 1 << 0,
 };
 struct MeasurementData
+/**
+ * @brief Structure to hold sensor data and status information.
+ * 
+ * This structure contains various fields to store the status and 
+ * measurement data from a CO₂ sensor, including error status, CO₂ 
+ * concentration, temperature, and measurement counts.
+ * 
+ * @var uint16_t errorstatus
+ * Status of the sensor indicating any errors.
+ * 
+ * @var uint16_t co2
+ * Measured CO₂ concentration.
+ * 
+ * @var uint16_t temperature
+ * Measured temperature.
+ * 
+ * @var uint8_t measurementCount
+ * Number of measurements taken.
+ * 
+ * @var uint16_t cycleTime
+ * Time taken for one measurement cycle.
+ * 
+ * @var uint16_t measUnfiCompens
+ * Unfiltered and uncompensated measurement value.
+ * 
+ * @var uint16_t measuredFiltered
+ * Filtered measurement value.
+ * 
+ * @var uint16_t measuredUnfiltered
+ * Unfiltered measurement value.
+ */
 {
     uint16_t errorstatus;
     uint16_t co2;
@@ -96,6 +127,24 @@ struct MeasurementData
     uint16_t measuredUnfiltered;
 };
 struct ProductType
+/**
+ * @brief A structure representing the Sunlight CO₂ sensor data.
+ * 
+ * This structure contains information about the firmware type, firmware revision,
+ * sensor ID, and product code of the Sunlight CO₂ sensor.
+ * 
+ * @var uint8_t FirmwareType
+ * The type of firmware used by the sensor.
+ * 
+ * @var uint16_t FirmwareRev
+ * The revision number of the firmware.
+ * 
+ * @var uint32_t SensorId
+ * The unique identifier of the sensor.
+ * 
+ * @var std::array<char, 15> ProductCode
+ * The product code of the sensor, stored as a character array.
+ */
 {
     uint8_t FirmwareType;
     uint16_t FirmwareRev;
@@ -104,6 +153,23 @@ struct ProductType
 };
 
 struct Config
+/**
+ * @brief Configuration structure for Sunlight CO₂ sensor.
+ * 
+ * This structure holds various configuration parameters for the Sunlight CO₂ sensor.
+ * 
+ * @param measurement_mode Mode of measurement (e.g., continuous, single-shot).
+ * @param measurement_period Period between measurements in seconds.
+ * @param number_of_samples Number of samples to average per measurement.
+ * @param abc_period Automatic Baseline Correction (ABC) period in hours.
+ * @param abc_target Target CO₂ concentration for ABC in ppm.
+ * @param iir_filter IIR filter setting for noise reduction.
+ * @param meter_control Control settings for the meter.
+ * @param i2c_address I2C address of the sensor.
+ * @param nominator Nominator for scaling calculations.
+ * @param denominator Denominator for scaling calculations.
+ * @param scaled_abc_target Scaled target CO₂ concentration for ABC.
+ */
 {
     uint8_t measurement_mode;
     uint16_t measurement_period;
@@ -117,7 +183,40 @@ struct Config
     uint16_t denominator;
     uint16_t scaled_abc_target;
 };
+
+
+
 struct StateData
+/**
+ * @brief Structure to hold various parameters for ABC (Automatic Baseline Correction) and filtering.
+ * 
+ * This structure contains parameters related to ABC and filtering processes.
+ * 
+ * @var uint16_t abc_time
+ *      Time parameter for ABC.
+ * @var uint16_t abc_par0
+ *      Parameter 0 for ABC.
+ * @var uint16_t abc_par1
+ *      Parameter 1 for ABC.
+ * @var uint16_t abc_par2
+ *      Parameter 2 for ABC.
+ * @var uint16_t abc_par3
+ *      Parameter 3 for ABC.
+ * @var uint16_t filt_par0
+ *      Parameter 0 for filtering.
+ * @var uint16_t filt_par1
+ *      Parameter 1 for filtering.
+ * @var uint16_t filt_par2
+ *      Parameter 2 for filtering.
+ * @var uint16_t filt_par3
+ *      Parameter 3 for filtering.
+ * @var uint16_t filt_par4
+ *      Parameter 4 for filtering.
+ * @var uint16_t filt_par5
+ *      Parameter 5 for filtering.
+ * @var uint16_t filt_par6
+ *      Parameter 6 for filtering.
+ */
 {
     uint16_t abc_time;
     uint16_t abc_par0;
@@ -173,6 +272,7 @@ public:
         i2c->init();
         gpio->output_conf(en_pin);
         gpio->input_conf(nrdy_pin);
+
         little_endian = is_little_endian();
 
         wake_up();

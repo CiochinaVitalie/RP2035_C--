@@ -1,5 +1,6 @@
 #include "Sunlight_CO₂.hpp"
 
+
 uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout)
 {
     int err = i2c->write(addr, reinterpret_cast<const uint8_t *>(data), size);
@@ -32,6 +33,16 @@ bool Sunlight_CO₂::is_error_active(Error error) const
     return (meas_data.errorstatus & static_cast<uint16_t>(error));
 }
 
+/**
+ * @brief Checks if the system is little-endian.
+ *
+ * This function determines the endianness of the system by creating a 
+ * 32-bit integer with a known byte pattern (0x01020304) and then 
+ * examining the first byte. If the first byte is 0x04, the system is 
+ * little-endian. Otherwise, it is big-endian.
+ *
+ * @return true if the system is little-endian, false otherwise.
+ */
 bool Sunlight_CO₂::is_little_endian() {
     uint32_t test = 0x01020304;
     uint8_t *ptr = reinterpret_cast<uint8_t*>(&test);
@@ -39,6 +50,15 @@ bool Sunlight_CO₂::is_little_endian() {
     return *ptr == 0x04; 
 }
 
+/**
+ * @brief Swaps the endianness of the given data if the system is little-endian.
+ *
+ * This function reverses the byte order of the data pointed to by `data` if the
+ * size of the data is greater than 1 and the system is little-endian.
+ *
+ * @param data Pointer to the data whose endianness is to be swapped.
+ * @param size Size of the data in bytes.
+ */
 void Sunlight_CO₂::swap_endianness(void *data, size_t size)
 {
     if (size > 1 && little_endian)
@@ -48,6 +68,31 @@ void Sunlight_CO₂::swap_endianness(void *data, size_t size)
     }
 }
 
+/**
+ * @brief Converts an Error enum value to its corresponding string representation.
+ *
+ * This function takes an Error enum value and returns a string that describes
+ * the error. The returned string includes a description of the error followed
+ * by a carriage return and newline characters.
+ *
+ * @param error The Error enum value to be converted to a string.
+ * @return A string representation of the provided Error enum value.
+ *         Possible return values are:
+ *         - "No error \r\n"
+ *         - "Low internal error \r\n"
+ *         - "Measurement timeout error \r\n"
+ *         - "Abnormal signal error \r\n"
+ *         - "Scale factor error \r\n"
+ *         - "Fatal error \r\n"
+ *         - "I2C communication error \r\n"
+ *         - "Algorithm error \r\n"
+ *         - "Calibration error \r\n"
+ *         - "Self-diagnostic error \r\n"
+ *         - "Out of range error \r\n"
+ *         - "Memory error \r\n"
+ *         - "No measurement complete \r\n"
+ *         - "Unknown error \r\n"
+ */
 std::string Sunlight_CO₂::error_to_string(Error error)
 {
     switch (error)
@@ -179,6 +224,16 @@ void Sunlight_CO₂::get_config()
     }
 }
 
+/**
+ * @brief Sets the configuration for the Sunlight_CO₂ sensor.
+ *
+ * This function writes the provided configuration settings to the sensor's registers.
+ * It first reads the current values from the sensor, compares them with the provided
+ * configuration, and writes the new values if they differ.
+ *
+ * @param set_config The configuration settings to be applied to the sensor.
+ * @return true if the configuration was successfully applied.
+ */
 bool Sunlight_CO₂::set_config(Config set_config)
 {
 
@@ -209,12 +264,10 @@ bool Sunlight_CO₂::set_config(Config set_config)
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, current_value, read.size);
 
-        if (read.size > 1)
-        {
-            swap_endianness(current_value, read.size);
-            swap_endianness(read.data, read.size);
+        swap_endianness(current_value, read.size);
+        swap_endianness(read.data, read.size);
   
-        }
+        
 
         if (memcmp(current_value, read.data, read.size) != 0) {
             I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
@@ -225,6 +278,35 @@ bool Sunlight_CO₂::set_config(Config set_config)
     return true;
 }
 
+/**
+ * @brief Retrieves sensor state data from the Sunlight CO₂ sensor.
+ * 
+ * This function reads multiple registers from the Sunlight CO₂ sensor and stores the data
+ * in the corresponding fields of the state_data structure. The data is read via I2C communication,
+ * and the endianness of the data is swapped after reading.
+ * 
+ * The function performs the following steps for each register:
+ * 1. Writes the register address to the sensor.
+ * 2. Reads the data from the sensor into the corresponding field in the state_data structure.
+ * 3. Swaps the endianness of the read data.
+ * 
+ * The registers read are:
+ * - AbcTime
+ * - AbcPar0
+ * - AbcPar1
+ * - AbcPar2
+ * - AbcPar3
+ * - FiltPar0
+ * - FiltPar1
+ * - FiltPar2
+ * - FiltPar3
+ * - FiltPar4
+ * - FiltPar5
+ * - FiltPar6
+ * 
+ * @note Ensure that the I2C communication functions (I2CWrite and I2CRead) and the 
+ * swap_endianness function are properly implemented and available.
+ */
 void Sunlight_CO₂::sensor_state_data_get()
 {
     struct RegisterRead
@@ -258,6 +340,20 @@ void Sunlight_CO₂::sensor_state_data_get()
     }
 }
 
+/**
+ * @brief Sets the sensor state data by writing to specific registers.
+ * 
+ * This function initializes an array of RegisterRead structures, each containing
+ * a register address, a pointer to the data to be written, and the size of the data.
+ * It then iterates over the array, swapping the endianness of the data, and writes
+ * the register address and data to the sensor using I2C communication.
+ * 
+ * Registers involved:
+ * - AbcTime
+ * - AbcPar0, AbcPar1, AbcPar2, AbcPar3
+ * - FiltPar0, FiltPar1, FiltPar2, FiltPar3, FiltPar4, FiltPar5, FiltPar6
+ * @note The function assumes that the swap_endianness and I2CWrite functions are defined elsewhere.
+ */
 void Sunlight_CO₂::sensor_state_data_set()
 {
     struct RegisterRead
@@ -291,6 +387,14 @@ void Sunlight_CO₂::sensor_state_data_set()
     }
 }
 
+/**
+ * @brief Clears the error status of the Sunlight CO₂ sensor.
+ *
+ * This function sends a command to the sensor to clear any existing error status.
+ * It uses the I2C protocol to communicate with the sensor.
+ *
+ * @note The function sends a specific command to the sensor's register to clear the error status.
+ */
 void Sunlight_CO₂::clear_error_status()
 {
     uint8_t buff[2] = {static_cast<uint8_t>(Registers::ClearErrorStatus), 0x01};
@@ -298,6 +402,14 @@ void Sunlight_CO₂::clear_error_status()
     I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_SRAM);
 }
 
+/**
+ * @brief Reads the error status from the sensor.
+ *
+ * This function writes the error status register address to the sensor and then reads the error status
+ * into the `meas_data.errorstatus` member variable.
+ *
+ * @note This function uses I2C communication to interact with the sensor.
+ */
 void Sunlight_CO₂::read_error_status()
 {
     uint8_t errorStatusReg = static_cast<uint8_t>(Registers::ErrorStatus);
@@ -306,12 +418,31 @@ void Sunlight_CO₂::read_error_status()
     I2CRead(SENSOR_ADDRESS, &meas_data.errorstatus, sizeof(meas_data.errorstatus));
 }
 
+/**
+ * @brief Initiates the measurement process for the Sunlight CO₂ sensor.
+ *
+ * This function sends a command to the sensor to start the measurement process.
+ * It writes a specific command to the sensor's I2C address to trigger the measurement.
+ *
+ * @note The function uses the I2CWrite function to communicate with the sensor.
+ * 
+ * @param None
+ * @return void
+ */
 void Sunlight_CO₂::start_mesure()
 {
     uint8_t buff[2] = {static_cast<uint8_t>(Registers::StartMesurement), 0x01};
     I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_SRAM);
 }
 
+/**
+ * @brief Resets the CO₂ sensor by writing a reset command to the sensor's register.
+ *
+ * This function sends a reset command to the CO₂ sensor using the I2C protocol.
+ * It writes a specific value to the sensor's register to initiate the reset process.
+ *
+ * @note The function uses a predefined sensor address and a delay for the wakeup process.
+ */
 void Sunlight_CO₂::reset_sensor()
 {
 
@@ -319,6 +450,22 @@ void Sunlight_CO₂::reset_sensor()
     I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_WAKEUP);
 }
 
+/**
+ * @brief Measures and retrieves CO2 and other related sensor data.
+ *
+ * This function performs the following steps:
+ * 1. Initializes a list of registers to read various sensor data.
+ * 2. Puts the sensor to sleep.
+ * 3. Starts the measurement process.
+ * 4. If a pressure pointer is provided, writes the pressure value to the sensor.
+ * 5. Sets the sensor state data.
+ * 6. Waits for the sensor to be ready (commented out) or waits for a fixed delay.
+ * 7. Reads data from the sensor registers and swaps the endianness of the data.
+ * 8. Puts the sensor back to sleep.
+ *
+ * @param pressure Pointer to a uint16_t variable where the pressure value will be stored. 
+ *                 If nullptr, pressure measurement is skipped.
+ */
 void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
 {
     struct RegisterRead

@@ -35,7 +35,8 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(RP2035_C++ RP2035_C++.cpp Sunlight_CO₂.cpp)
+add_executable(RP2035_C++   RP2035_C++.cpp 
+                            src/Sunlight_CO₂.cpp)
 
 pico_set_program_name(RP2035_C++ "RP2035_C++")
 pico_set_program_version(RP2035_C++ "0.1")
@@ -51,6 +52,8 @@ target_link_libraries(RP2035_C++
 # Add the standard include files to the build
 target_include_directories(RP2035_C++ PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/include
+  ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # Add any user requested libraries
