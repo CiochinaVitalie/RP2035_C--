@@ -117,7 +117,7 @@ struct MeasurementData
  * Unfiltered measurement value.
  */
 {
-    uint16_t errorstatus;
+    Error errorstatus;
     uint16_t co2;
     uint16_t temperature;
     uint8_t measurementCount;
@@ -262,7 +262,6 @@ private:
     void read_error_status();
     void product_type_get();
     void get_config();
-    bool is_error_active(Error error) const;
 
 public:
     Sunlight_CO₂(II2C *i2c_context, IDelay *delay_context, IGPIO *gpio_context, int en_pin, int nrdy_pin)
@@ -284,7 +283,7 @@ public:
     }
     Config config;
     MeasurementData meas_data;
-    std::string error_to_string(Error error);
+    std::string error_to_string();
   
     bool set_config(Config config);
     void sleep();

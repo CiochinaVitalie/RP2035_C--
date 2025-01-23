@@ -27,11 +27,6 @@ void Sunlight_CO₂::wake_up()
     delay->wait_ms(35);
 }
 
-bool Sunlight_CO₂::is_error_active(Error error) const
-{
-    return (meas_data.errorstatus & static_cast<uint16_t>(error));
-}
-
 /**
  * @brief Checks if the system is little-endian.
  *
@@ -93,9 +88,9 @@ void Sunlight_CO₂::swap_endianness(void *data, size_t size)
  *         - "No measurement complete \r\n"
  *         - "Unknown error \r\n"
  */
-std::string Sunlight_CO₂::error_to_string(Error error)
+std::string Sunlight_CO₂::error_to_string()
 {
-    switch (error)
+    switch (meas_data.errorstatus)
     {
     case Error::None:
         return "No error \r\n";
@@ -429,9 +424,11 @@ void Sunlight_CO₂::clear_error_status()
 void Sunlight_CO₂::read_error_status()
 {
     uint8_t errorStatusReg = static_cast<uint8_t>(Registers::ErrorStatus);
+    uint16_t raw_errorstatus;
 
     I2CWrite(SENSOR_ADDRESS, &errorStatusReg, sizeof(errorStatusReg), DELAY_ZIRO);
-    I2CRead(SENSOR_ADDRESS, &meas_data.errorstatus, sizeof(meas_data.errorstatus));
+    I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(raw_errorstatus), sizeof(raw_errorstatus));
+    meas_data.errorstatus = static_cast<Error>(raw_errorstatus);
 }
 
 /**
