@@ -28,20 +28,19 @@ int main()
 
 
 
-    // Sunlight_CO₂ *sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, EN_PIN, NRDY_PIN);
+    Sunlight_CO₂ *sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, EN_PIN, NRDY_PIN);
+
+    sensor->config.abc_period = 10;
+    sensor->config.meter_control &= 0xFD;
+    sensor->set_config(sensor->config);
     // sensor->CO2_measurement_get(nullptr);
 
     while (true) {
+
+        sensor->CO2_measurement_get(nullptr);
         // printf("CO2: %d ppm\n", sensor->meas_data.co2);
         // printf("Temperature: %d C\n", sensor->meas_data.temperature);
 
-        if (isLittleEndian()) {
-
-        printf("System is Little-Endian\n");
-    } else {
-
-        printf("System is Big-Endian\n");
-    }
         sleep_ms(1000);
     }
 }

@@ -1,6 +1,5 @@
 #include "Sunlight_CO₂.hpp"
 
-
 uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout)
 {
     int err = i2c->write(addr, reinterpret_cast<const uint8_t *>(data), size);
@@ -36,18 +35,19 @@ bool Sunlight_CO₂::is_error_active(Error error) const
 /**
  * @brief Checks if the system is little-endian.
  *
- * This function determines the endianness of the system by creating a 
- * 32-bit integer with a known byte pattern (0x01020304) and then 
- * examining the first byte. If the first byte is 0x04, the system is 
+ * This function determines the endianness of the system by creating a
+ * 32-bit integer with a known byte pattern (0x01020304) and then
+ * examining the first byte. If the first byte is 0x04, the system is
  * little-endian. Otherwise, it is big-endian.
  *
  * @return true if the system is little-endian, false otherwise.
  */
-bool Sunlight_CO₂::is_little_endian() {
+bool Sunlight_CO₂::is_little_endian()
+{
     uint32_t test = 0x01020304;
-    uint8_t *ptr = reinterpret_cast<uint8_t*>(&test);
+    uint8_t *ptr = reinterpret_cast<uint8_t *>(&test);
 
-    return *ptr == 0x04; 
+    return *ptr == 0x04;
 }
 
 /**
@@ -224,18 +224,20 @@ void Sunlight_CO₂::get_config()
     }
 }
 
+
 /**
  * @brief Sets the configuration for the Sunlight_CO₂ sensor.
  *
  * This function writes the provided configuration settings to the sensor's registers.
- * It first reads the current values from the sensor, compares them with the provided
- * configuration, and writes the new values if they differ.
+ * If any of the critical configuration values differ from the current values in the sensor,
+ * the sensor will be reset to apply the changes.
  *
  * @param set_config The configuration settings to be applied to the sensor.
  * @return true if the configuration was successfully applied.
  */
 bool Sunlight_CO₂::set_config(Config set_config)
 {
+    bool reset_required = false;
 
     struct RegisterRead
     {
@@ -255,8 +257,7 @@ bool Sunlight_CO₂::set_config(Config set_config)
         {static_cast<uint8_t>(Registers::I2C_Address_EE), &set_config.i2c_address, sizeof(set_config.i2c_address)},
         {static_cast<uint8_t>(Registers::Nominator_EE), &set_config.nominator, sizeof(set_config.nominator)},
         {static_cast<uint8_t>(Registers::Denominator_EE), &set_config.denominator, sizeof(set_config.denominator)},
-        {static_cast<uint8_t>(Registers::Scale_ABC_Target), &set_config.scaled_abc_target, sizeof(set_config.scaled_abc_target)}
-        };
+        {static_cast<uint8_t>(Registers::Scale_ABC_Target), &set_config.scaled_abc_target, sizeof(set_config.scaled_abc_target)}};
 
     for (const auto read : reads)
     {
@@ -264,15 +265,34 @@ bool Sunlight_CO₂::set_config(Config set_config)
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, current_value, read.size);
 
-        swap_endianness(current_value, read.size);
-        swap_endianness(read.data, read.size);
-  
-        
+        // swap_endianness(current_value, read.size);
+        // swap_endianness(read.data, read.size);
 
-        if (memcmp(current_value, read.data, read.size) != 0) {
+        if (memcmp(current_value, read.data, read.size) != 0)
+        {
             I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
-            I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t*>(read.data), read.size, DELAY_EEPROM);
+            I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t *>(read.data), read.size, DELAY_EEPROM);
+
+            switch (read.reg)
+            {
+            case static_cast<uint8_t>(Registers::MeasurementMode_EE):
+            case static_cast<uint8_t>(Registers::MeasurementPeriod_EE):
+            case static_cast<uint8_t>(Registers::NumberOfSamples_EE):
+            case static_cast<uint8_t>(Registers::I2C_Address_EE):
+            case static_cast<uint8_t>(Registers::Nominator_EE):
+            case static_cast<uint8_t>(Registers::Denominator_EE):
+                reset_required = true;
+                break;
+
+            default:
+                break;
+            }
         }
+    }
+    if (reset_required)
+    {
+        reset_sensor();
+        get_config();
     }
 
     return true;
@@ -280,16 +300,16 @@ bool Sunlight_CO₂::set_config(Config set_config)
 
 /**
  * @brief Retrieves sensor state data from the Sunlight CO₂ sensor.
- * 
+ *
  * This function reads multiple registers from the Sunlight CO₂ sensor and stores the data
  * in the corresponding fields of the state_data structure. The data is read via I2C communication,
  * and the endianness of the data is swapped after reading.
- * 
+ *
  * The function performs the following steps for each register:
  * 1. Writes the register address to the sensor.
  * 2. Reads the data from the sensor into the corresponding field in the state_data structure.
  * 3. Swaps the endianness of the read data.
- * 
+ *
  * The registers read are:
  * - AbcTime
  * - AbcPar0
@@ -303,8 +323,8 @@ bool Sunlight_CO₂::set_config(Config set_config)
  * - FiltPar4
  * - FiltPar5
  * - FiltPar6
- * 
- * @note Ensure that the I2C communication functions (I2CWrite and I2CRead) and the 
+ *
+ * @note Ensure that the I2C communication functions (I2CWrite and I2CRead) and the
  * swap_endianness function are properly implemented and available.
  */
 void Sunlight_CO₂::sensor_state_data_get()
@@ -335,19 +355,17 @@ void Sunlight_CO₂::sensor_state_data_get()
     {
         I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
         I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(read.data), read.size);
-        swap_endianness(read.data, read.size);
-
     }
 }
 
 /**
  * @brief Sets the sensor state data by writing to specific registers.
- * 
+ *
  * This function initializes an array of RegisterRead structures, each containing
  * a register address, a pointer to the data to be written, and the size of the data.
  * It then iterates over the array, swapping the endianness of the data, and writes
  * the register address and data to the sensor using I2C communication.
- * 
+ *
  * Registers involved:
  * - AbcTime
  * - AbcPar0, AbcPar1, AbcPar2, AbcPar3
@@ -380,10 +398,8 @@ void Sunlight_CO₂::sensor_state_data_set()
     };
     for (const auto write : writes)
     {
-        swap_endianness(write.data, write.size);
         I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
         I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(write.data), write.size, DELAY_SRAM);
-        
     }
 }
 
@@ -425,7 +441,7 @@ void Sunlight_CO₂::read_error_status()
  * It writes a specific command to the sensor's I2C address to trigger the measurement.
  *
  * @note The function uses the I2CWrite function to communicate with the sensor.
- * 
+ *
  * @param None
  * @return void
  */
@@ -463,7 +479,7 @@ void Sunlight_CO₂::reset_sensor()
  * 7. Reads data from the sensor registers and swaps the endianness of the data.
  * 8. Puts the sensor back to sleep.
  *
- * @param pressure Pointer to a uint16_t variable where the pressure value will be stored. 
+ * @param pressure Pointer to a uint16_t variable where the pressure value will be stored.
  *                 If nullptr, pressure measurement is skipped.
  */
 void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)

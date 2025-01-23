@@ -257,8 +257,7 @@ private:
     void sensor_state_data_get();
     void sensor_state_data_set();
     void start_mesure();
-    void sleep();
-    void wake_up();
+
     void clear_error_status();
     void read_error_status();
     void product_type_get();
@@ -278,6 +277,7 @@ public:
         wake_up();
         clear_error_status();
         product_type_get();
+        get_config();
         sensor_state_data_get();
         read_error_status();
         sleep();
@@ -287,6 +287,8 @@ public:
     std::string error_to_string(Error error);
   
     bool set_config(Config config);
+    void sleep();
+    void wake_up();
     void reset_sensor();
     void CO2_measurement_get(uint16_t *pressure);
 
