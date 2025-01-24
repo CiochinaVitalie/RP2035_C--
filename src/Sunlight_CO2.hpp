@@ -289,6 +289,8 @@ public:
     void sleep();
     void wake_up();
     void reset_sensor();
+    uint16_t GetCalibrationTarget();
+    void SetCalibrationTarget(uint16_t val);
     void CO2_measurement_get(uint16_t *pressure);
 
     ~Sunlight_CO₂() {};

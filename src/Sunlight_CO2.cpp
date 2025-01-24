@@ -430,6 +430,46 @@ void Sunlight_CO₂::read_error_status()
     I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(raw_errorstatus), sizeof(raw_errorstatus));
     meas_data.errorstatus = static_cast<Error>(raw_errorstatus);
 }
+/**
+ * @brief Retrieves the calibration target value from the Sunlight CO₂ sensor.
+ *
+ * This function communicates with the Sunlight CO₂ sensor over I2C to read the
+ * calibration target value. It first writes the CalibrationTarget register address
+ * to the sensor, then reads the 2-byte target value from the sensor. The endianness
+ * of the target value is swapped before returning it.
+ *
+ * @return uint16_t The calibration target value.
+ */
+uint16_t Sunlight_CO₂::GetCalibrationTarget()
+{
+    uint16_t target_value;
+    uint8_t CalibrationTarget = static_cast<uint8_t>(Registers::CalibrationTarget);
+    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget),DELAY_ZIRO);
+    I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&target_value), 2);
+    swap_endianness(&target_value, sizeof(target_value));
+    return target_value;
+
+}
+/**
+ * @brief Sets the calibration target for the Sunlight CO₂ sensor.
+ *
+ * This function writes the calibration target value to the sensor's registers
+ * using I2C communication. It first writes the calibration status register,
+ * then the calibration target register, and finally the target value itself.
+ *
+ * @param val The calibration target value to be set.
+ */
+void Sunlight_CO₂::SetCalibrationTarget(uint16_t val)
+{
+    
+    uint8_t buff[2] = {static_cast<uint8_t>(Registers::CalibrationStatus), 0x00};
+    uint8_t CalibrationTarget = static_cast<uint8_t>(Registers::CalibrationTarget);
+    I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_SRAM);
+
+    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget));
+    I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&val), 2, DELAY_SRAM);
+
+}
 
 /**
  * @brief Initiates the measurement process for the Sunlight CO₂ sensor.
