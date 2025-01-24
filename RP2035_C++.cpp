@@ -7,7 +7,7 @@ extern "C" {
 #define NRDY_PIN  21
 
 #include "RP2040.hpp"
-#include "Sunlight_CO₂.hpp"
+#include "Sunlight_CO2.hpp"
 
 bool isLittleEndian() {
     uint16_t number = 0x1; // 16-битное число, где младший байт равен 0x01

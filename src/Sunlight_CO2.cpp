@@ -1,4 +1,4 @@
-#include "Sunlight_CO₂.hpp"
+#include "Sunlight_CO2.hpp"
 
 uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout)
 {

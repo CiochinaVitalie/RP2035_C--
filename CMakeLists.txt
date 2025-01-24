@@ -36,7 +36,7 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(RP2035_C++   RP2035_C++.cpp 
-                            src/Sunlight_CO₂.cpp)
+                            src/Sunlight_CO2.cpp)
 
 pico_set_program_name(RP2035_C++ "RP2035_C++")
 pico_set_program_version(RP2035_C++ "0.1")
