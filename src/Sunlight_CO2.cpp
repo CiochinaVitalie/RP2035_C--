@@ -88,9 +88,9 @@ void Sunlight_CO₂::swap_endianness(void *data, size_t size)
  *         - "No measurement complete \r\n"
  *         - "Unknown error \r\n"
  */
-std::string Sunlight_CO₂::error_to_string()
+const char* Sunlight_CO₂::error_to_string(Error error)
 {
-    switch (meas_data.errorstatus)
+    switch (error)
     {
     case Error::None:
         return "No error \r\n";
@@ -121,6 +121,20 @@ std::string Sunlight_CO₂::error_to_string()
     default:
         return "Unknown error \r\n";
     }
+}
+
+void Sunlight_CO₂::print_errors()
+{
+
+    for (uint16_t bit = 0; bit < 16; ++bit)
+    {
+        uint16_t error_flag = (1 << bit);
+        if (meas_data.errorstatus & error_flag)
+        { 
+            printf("- %s\n", error_to_string(static_cast<Error>(error_flag)));
+        }
+    }
+
 }
 /**
  * @brief Retrieves the product type information from the sensor.
@@ -432,7 +446,7 @@ void Sunlight_CO₂::read_error_status()
 
     I2CWrite(SENSOR_ADDRESS, &errorStatusReg, sizeof(errorStatusReg), DELAY_ZIRO);
     I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(raw_errorstatus), sizeof(raw_errorstatus));
-    meas_data.errorstatus = static_cast<Error>(raw_errorstatus);
+    meas_data.errorstatus = raw_errorstatus;
 }
 /**
  * @brief Retrieves the calibration target value from the Sunlight CO₂ sensor.
