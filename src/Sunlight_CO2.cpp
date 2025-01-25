@@ -219,7 +219,6 @@ void Sunlight_CO₂::get_config()
     }
 }
 
-
 /**
  * @brief Sets the configuration for the Sunlight_CO₂ sensor.
  *
@@ -234,14 +233,19 @@ bool Sunlight_CO₂::set_config(Config set_config)
 {
     bool reset_required = false;
 
-    struct RegisterRead
+    if(set_config.i2c_address < 0x08 || set_config.measurement_mode > 0x78)
+    {
+        return false;
+    }
+
+    struct RegisterWrite
     {
         uint8_t reg;
         void *data;
         size_t size;
     };
 
-    RegisterRead reads[] = {
+    RegisterWrite writes[] = {
         {static_cast<uint8_t>(Registers::MeasurementMode_EE), &set_config.measurement_mode, sizeof(set_config.measurement_mode)},
         {static_cast<uint8_t>(Registers::MeasurementPeriod_EE), &set_config.measurement_period, sizeof(set_config.measurement_period)},
         {static_cast<uint8_t>(Registers::NumberOfSamples_EE), &set_config.number_of_samples, sizeof(set_config.number_of_samples)},
@@ -254,21 +258,21 @@ bool Sunlight_CO₂::set_config(Config set_config)
         {static_cast<uint8_t>(Registers::Denominator_EE), &set_config.denominator, sizeof(set_config.denominator)},
         {static_cast<uint8_t>(Registers::Scale_ABC_Target), &set_config.scaled_abc_target, sizeof(set_config.scaled_abc_target)}};
 
-    for (const auto read : reads)
+    for (const auto write : writes)
     {
-        uint8_t current_value[read.size];
-        I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
-        I2CRead(SENSOR_ADDRESS, current_value, read.size);
+        uint8_t current_value[write.size];
+        I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
+        I2CRead(SENSOR_ADDRESS, current_value, write.size);
 
         // swap_endianness(current_value, read.size);
         // swap_endianness(read.data, read.size);
 
-        if (memcmp(current_value, read.data, read.size) != 0)
-        {
-            I2CWrite(SENSOR_ADDRESS, &read.reg, sizeof(read.reg), DELAY_ZIRO);
-            I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t *>(read.data), read.size, DELAY_EEPROM);
+        if (memcmp(current_value, write.data, write.size) != 0)
+        {            
+            I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_ZIRO);
+            I2CWrite(SENSOR_ADDRESS, reinterpret_cast<const uint8_t *>(write.data), write.size, DELAY_EEPROM);
 
-            switch (read.reg)
+            switch (write.reg)
             {
             case static_cast<uint8_t>(Registers::MeasurementMode_EE):
             case static_cast<uint8_t>(Registers::MeasurementPeriod_EE):
@@ -444,11 +448,10 @@ uint16_t Sunlight_CO₂::GetCalibrationTarget()
 {
     uint16_t target_value;
     uint8_t CalibrationTarget = static_cast<uint8_t>(Registers::CalibrationTarget);
-    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget),DELAY_ZIRO);
+    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget), DELAY_ZIRO);
     I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&target_value), 2);
     swap_endianness(&target_value, sizeof(target_value));
     return target_value;
-
 }
 /**
  * @brief Sets the calibration target for the Sunlight CO₂ sensor.
@@ -461,16 +464,60 @@ uint16_t Sunlight_CO₂::GetCalibrationTarget()
  */
 void Sunlight_CO₂::SetCalibrationTarget(uint16_t val)
 {
-    
+
     uint8_t buff[2] = {static_cast<uint8_t>(Registers::CalibrationStatus), 0x00};
     uint8_t CalibrationTarget = static_cast<uint8_t>(Registers::CalibrationTarget);
     I2CWrite(SENSOR_ADDRESS, buff, sizeof(buff), DELAY_SRAM);
 
-    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget));
+    I2CWrite(SENSOR_ADDRESS, &CalibrationTarget, sizeof(CalibrationTarget), DELAY_ZIRO);
     I2CWrite(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(&val), 2, DELAY_SRAM);
-
 }
+/**
+ * @brief Performs a background calibration for the Sunlight CO₂ sensor.
+ *
+ * This function initiates a background calibration process for the Sunlight CO₂ sensor.
+ * It writes specific values to the sensor's registers to trigger the calibration process.
+ *
+ * @note The function uses the I2CWrite function to communicate with the sensor.
+ */
+bool Sunlight_CO₂::background_calibration()
+{
 
+    uint8_t cal_status_val = 0x00;
+    uint16_t cal_cmd_val = 0x7C06;
+    struct Register
+    {
+        uint8_t reg;
+        void *data;
+        size_t size;
+    };
+
+    Register writes[] = {
+        {static_cast<uint8_t>(Registers::CalibrationStatus), &cal_status_val, sizeof(cal_status_val)},
+        {static_cast<uint8_t>(Registers::CalibrationCommand), &cal_cmd_val, sizeof(cal_cmd_val)},
+    };
+
+    for (const auto write : writes)
+    {
+        I2CWrite(SENSOR_ADDRESS, &write.reg, sizeof(write.reg), DELAY_SRAM);
+    }
+
+    if (config.measurement_mode == 0x01)
+    {
+        sensor_state_data_set();
+        // while (!gpio->read(nrdy_pin))
+        // {
+        //     delay->wait_ms(1);
+        // }
+        sensor_state_data_get();
+    }
+
+    I2CWrite(SENSOR_ADDRESS, &writes[0].reg, sizeof(writes[0].reg), DELAY_ZIRO);
+    I2CRead(SENSOR_ADDRESS, reinterpret_cast<uint8_t *>(writes[0].data), writes[0].size);
+
+    uint8_t status = *reinterpret_cast<uint8_t *>(writes[0].data);
+    return (status == 0x20);
+}
 /**
  * @brief Initiates the measurement process for the Sunlight CO₂ sensor.
  *

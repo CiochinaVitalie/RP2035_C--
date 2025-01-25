@@ -241,8 +241,7 @@ private:
     int en_pin;
     int nrdy_pin;
 
-    static constexpr uint8_t SENSOR_ADDRESS = 0x68;
-    uint8_t state_buffer[24];
+    uint8_t SENSOR_ADDRESS;
 
     StateData state_data;
     ProductType product;
@@ -265,7 +264,7 @@ private:
 
 public:
     Sunlight_CO₂(II2C *i2c_context, IDelay *delay_context, IGPIO *gpio_context, int en_pin, int nrdy_pin)
-        : i2c(i2c_context), delay(delay_context), gpio(gpio_context), en_pin(en_pin), nrdy_pin(nrdy_pin)
+        : i2c(i2c_context), delay(delay_context), gpio(gpio_context), en_pin(en_pin), nrdy_pin(nrdy_pin), SENSOR_ADDRESS(0x68)
     {
         i2c->init();
         gpio->output_conf(en_pin);
@@ -291,6 +290,7 @@ public:
     void reset_sensor();
     uint16_t GetCalibrationTarget();
     void SetCalibrationTarget(uint16_t val);
+    bool background_calibration();
     void CO2_measurement_get(uint16_t *pressure);
 
     ~Sunlight_CO₂() {};
