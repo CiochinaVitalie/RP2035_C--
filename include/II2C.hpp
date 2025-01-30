@@ -11,6 +11,4 @@ public:
     virtual void init() = 0;
     virtual int write(uint8_t address, const uint8_t *data, size_t length) = 0;
     virtual int read(uint8_t address, uint8_t *data, size_t length) = 0;
-    virtual int write_burst(uint8_t address, const uint8_t *data, size_t length) = 0;
-    virtual int read_burst(uint8_t address, uint8_t *data, size_t length) = 0;
 };

@@ -89,22 +89,14 @@ public:
 
     int write(uint8_t address, const uint8_t *data, size_t length) override
     {
-        return i2c_write_blocking(i2c_instance, address, data, length, false);
+        int result = i2c_write_blocking(i2c_instance, address, data, length, false);
+        return result < 0 ? result : 0;//i2c_write_blocking(i2c_instance, address, data, length, false);
     }
 
     int read(uint8_t address, uint8_t *data, size_t length) override
     {
-        return i2c_read_blocking(i2c_instance, address, data, length, false);
-    }
-
-    int write_burst(uint8_t address, const uint8_t *data, size_t length) override
-    {
-        return i2c_write_burst_blocking(i2c_instance, address, data, length);
-    }
-
-    int read_burst(uint8_t address, uint8_t *data, size_t length) override
-    {
-        return i2c_read_burst_blocking(i2c_instance, address, data, length);
+        int result = i2c_read_blocking(i2c_instance, address, data, length, false);
+        return result < 0 ? result : 0;
     }
 };
 

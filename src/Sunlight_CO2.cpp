@@ -3,7 +3,7 @@
 uint8_t Sunlight_CO₂::I2CWrite(int addr, const void *data, size_t size, unsigned long int timeout)
 {
     int err = i2c->write(addr, reinterpret_cast<const uint8_t *>(data), size);
-    if (err < 0)
+    if (err != 0)
     {
         err = i2c->write(addr, reinterpret_cast<const uint8_t *>(data), size);
     }
@@ -123,6 +123,12 @@ const char* Sunlight_CO₂::error_to_string(Error error)
     }
 }
 
+/**
+ * @brief Prints the error messages based on the error status flags.
+ *
+ * This function iterates through each bit of a 16-bit error status flag.
+ * For each bit that is set, it prints the corresponding error message.
+ */
 void Sunlight_CO₂::print_errors()
 {
 
