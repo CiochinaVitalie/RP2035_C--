@@ -9,13 +9,6 @@ extern "C" {
 #include "RP2040.hpp"
 #include "Sunlight_CO2.hpp"
 
-bool isLittleEndian() {
-    uint16_t number = 0x1; // 16-битное число, где младший байт равен 0x01
-    uint8_t *bytePointer = reinterpret_cast<uint8_t*>(&number);
-
-    return *bytePointer == 0x1; // Если младший байт равен 0x01, то little-endian
-}
-
 int main()
 {
     stdio_init_all();

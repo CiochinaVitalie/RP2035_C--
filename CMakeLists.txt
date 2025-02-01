@@ -63,3 +63,32 @@ target_link_libraries(RP2035_C++
 
 pico_add_extra_outputs(RP2035_C++)
 
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+
+# Unit tests
+include(FetchContent)
+
+FetchContent_Declare(
+    Unity
+    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+    GIT_TAG v2.6.1  # Укажите нужную версию
+)
+
+# Загружаем Catch2 и подключаем к проекту
+FetchContent_MakeAvailable(Unity)
+
+add_executable(runTests
+    test/test_main.cpp
+    test/syscalls.c
+)
+target_include_directories(runTests PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/include
+  ${CMAKE_CURRENT_LIST_DIR}/src
+)
+
+# Линкуем Unity к тестам
+target_link_libraries(runTests PRIVATE pico_stdlib  hardware_i2c unity)
+pico_enable_stdio_usb(runTests 1)
+
+pico_add_extra_outputs(runTests)
