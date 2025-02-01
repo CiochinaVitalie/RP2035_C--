@@ -12,14 +12,21 @@ extern "C"
 #define EN_PIN 20
 #define NRDY_PIN 21
 
+RP2040I2C i2c(i2c0);
+RP2040Delay delay;
+RP2040GPIO gpio;
+Sunlight_CO₂ *sensor;
+
 void setUp(void)
 {
- 
+    sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, EN_PIN, NRDY_PIN);
+    sensor->wake_up();
+    
 }
 
 void tearDown(void)
 {
-    // Эта функция выполняется после каждого теста
+    delete sensor;
 }
 
 void test_addition(void)
@@ -36,8 +43,6 @@ void test_string(void)
 int main(void)
 {
     stdio_init_all();
-
-
 
     UNITY_BEGIN();           // Инициализация тестов
     RUN_TEST(test_addition); // Запуск тестов
