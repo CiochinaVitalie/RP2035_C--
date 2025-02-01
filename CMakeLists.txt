@@ -63,8 +63,10 @@ target_link_libraries(RP2035_C++
 
 pico_add_extra_outputs(RP2035_C++)
 
-set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+# Enable testing
+option(ENABLE_TESTS "Enable unit tests" OFF)
 
+if (ENABLE_UNITY)
 # Unit tests
 include(FetchContent)
 
@@ -92,3 +94,5 @@ target_link_libraries(runTests PRIVATE pico_stdlib  hardware_i2c unity)
 pico_enable_stdio_usb(runTests 1)
 
 pico_add_extra_outputs(runTests)
+
+endif()
