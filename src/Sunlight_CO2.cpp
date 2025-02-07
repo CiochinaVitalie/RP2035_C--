@@ -16,11 +16,24 @@ uint8_t Sunlight_CO₂::I2CRead(int addr, void *data, size_t size, unsigned long
     return i2c->read(addr, reinterpret_cast<uint8_t *>(data), size);
 }
 
+/**
+ * @brief Puts the Sunlight_CO₂ module into sleep mode.
+ *
+ * This function sets the enable pin (en_pin) to a low state, 
+ * effectively putting the Sunlight_CO₂ module into sleep mode 
+ * to conserve power.
+ */
 void Sunlight_CO₂::sleep()
 {
     gpio->set_low(en_pin);
 }
 
+/**
+ * @brief Wakes up the Sunlight CO₂ sensor by setting the enable pin high and waiting for 35 milliseconds.
+ *
+ * This function sets the GPIO pin connected to the enable pin of the Sunlight CO₂ sensor to high,
+ * and then waits for 35 milliseconds to ensure the sensor is properly powered up and ready for operation.
+ */
 void Sunlight_CO₂::wake_up()
 {
     gpio->set_high(en_pin);
@@ -608,8 +621,6 @@ void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
 
     };
 
-    sleep();
-
     start_mesure();
 
     if (pressure != nullptr)
@@ -635,6 +646,5 @@ void Sunlight_CO₂::CO2_measurement_get(uint16_t *pressure)
         swap_endianness(read.data, read.size);
     }
 
-    // sensor_state_data_get();
-    sleep();
+    sensor_state_data_get();
 }
