@@ -38,7 +38,7 @@ pico_sdk_init()
 add_executable(RP2035_C++
     RP2035_C++.cpp
     src/Sunlight_CO2.cpp
-    src/sx1278.cpp
+    src/sx127x.cpp
 )
 
 pico_set_program_name(RP2035_C++ "RP2035_C++")

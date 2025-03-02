@@ -236,8 +236,8 @@ private:
     II2C *i2c;
     IDelay *delay;
     IGPIO *gpio;
-    int en_pin;
-    int nrdy_pin;
+    void* en_pin;
+    void* nrdy_pin;
 
     uint8_t SENSOR_ADDRESS;
 
@@ -260,7 +260,7 @@ private:
     void get_config();
 
 public:
-    Sunlight_CO₂(II2C *i2c_context, IDelay *delay_context, IGPIO *gpio_context, int en_pin, int nrdy_pin)
+    Sunlight_CO₂(II2C *i2c_context, IDelay *delay_context, IGPIO *gpio_context, void* en_pin, void* nrdy_pin)
         : i2c(i2c_context), delay(delay_context), gpio(gpio_context), en_pin(en_pin), nrdy_pin(nrdy_pin), SENSOR_ADDRESS(0x68)
     {
         i2c->init();

@@ -30,16 +30,21 @@ public:
         gpio_set_function(PICO_DEFAULT_SPI_TX_PIN, GPIO_FUNC_SPI);
     }
 
-    int write(const uint8_t *data, size_t length) override
+    uint8_t write(const uint8_t *data, size_t length) override
     {
         int result = spi_write_blocking(spi_instance, data, length);
-        return result < 0 ? result : 0;
+        return result < 0 ? 1 : 0;
     }
 
-    int read(uint8_t *data, size_t length) override
+    uint8_t read(uint8_t *data, size_t length) override
     {
         int result = spi_read_blocking(spi_instance, 0, data, length);
-        return result < 0 ? result : 0;
+        return result < 0 ? 1 : 0;
+    }
+    uint8_t write_read(const uint8_t *tx_data, uint8_t *rx_data, size_t length)
+    {
+        int result = spi_write_read_blocking(spi_instance, tx_data, rx_data, length);
+        return result < 0 ? 1 : 0;
     }
 };
 /**
@@ -183,31 +188,31 @@ public:
 class RP2040GPIO : public IGPIO
 {
 public:
-    void set_high(int pin) override
+    void set_high(void* pin) override
     {
-        gpio_put(pin, true);
+        gpio_put(*static_cast<int*>(pin), true);
     }
 
-    void set_low(int pin) override
+    void set_low(void* pin) override
     {
-        gpio_put(pin, false);
+        gpio_put(*static_cast<int*>(pin), false);
     }
 
-    void output_conf(int pin) override
+    void output_conf(void* pin) override
     {
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
+        gpio_init(*static_cast<int*>(pin));
+        gpio_set_dir(*static_cast<int*>(pin), GPIO_OUT);
     }
 
-    void input_conf(int pin) override
+    void input_conf(void* pin) override
     {
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_IN);
-        gpio_pull_up(pin);
+        gpio_init(*static_cast<int*>(pin));
+        gpio_set_dir(*static_cast<int*>(pin), GPIO_IN);
+        gpio_pull_up(*static_cast<int*>(pin));
     }
 
-    bool read(int pin) override
+    bool read(void* pin) override
     {
-        return gpio_get(pin);
+        return gpio_get(*static_cast<int*>(pin));
     }
 };

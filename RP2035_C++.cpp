@@ -9,6 +9,9 @@ extern "C" {
 #include "RP2040.hpp"
 #include "Sunlight_CO2.hpp"
 
+uint8_t en_pin = 20;
+uint8_t nrdy_pin = 21;
+
 int main()
 {
     stdio_init_all();
@@ -21,7 +24,7 @@ int main()
 
 
 
-    Sunlight_CO₂ *sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, EN_PIN, NRDY_PIN);
+    Sunlight_CO₂ *sensor = new Sunlight_CO₂(&i2c,&delay, &gpio, &en_pin, &nrdy_pin);
 
     sensor->config.abc_period = 10;
     sensor->config.meter_control &= 0xFD;
